@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AP Human Geography Map Challenge</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQ3ynhFeFiAwWPhrdG7KlP3LqA7r9xQ=" crossorigin="">
+  <style>
+    /* Essential Leaflet layout rules are inlined so the single file stays usable
+       when a browser delays or blocks the external Leaflet stylesheet. */
+    .leaflet-pane, .leaflet-tile, .leaflet-marker-icon, .leaflet-marker-shadow,
+    .leaflet-tile-container, .leaflet-pane > svg, .leaflet-pane > canvas,
+    .leaflet-zoom-box, .leaflet-image-layer, .leaflet-layer {
+      position: absolute; left: 0; top: 0;
+    }
+    .leaflet-container { overflow: hidden; -webkit-tap-highlight-color: transparent; }
+    .leaflet-tile, .leaflet-marker-icon, .leaflet-marker-shadow { user-select: none; -webkit-user-drag: none; }
+    .leaflet-tile { filter: inherit; visibility: hidden; }
+    .leaflet-tile-loaded { visibility: inherit; }
+    .leaflet-zoom-animated { transform-origin: 0 0; }
+    .leaflet-zoom-hide { visibility: hidden; }
+    .leaflet-pane { z-index: 400; }
+    .leaflet-tile-pane { z-index: 200; }
+    .leaflet-overlay-pane { z-index: 400; }
+    .leaflet-shadow-pane { z-index: 500; }
+    .leaflet-marker-pane { z-index: 600; }
+    .leaflet-tooltip-pane { z-index: 650; }
+    .leaflet-popup-pane { z-index: 700; }
+    .leaflet-map-pane canvas { z-index: 100; }
+    .leaflet-map-pane svg { z-index: 200; }
+    .leaflet-pane > svg path, .leaflet-tile-container { pointer-events: none; }
+    .leaflet-pane > svg path.leaflet-interactive { pointer-events: auto; }
+    .leaflet-container a { -webkit-tap-highlight-color: rgb(51 181 229 / 40%); }
+    .leaflet-control { position: relative; z-index: 800; pointer-events: auto; }
+    .leaflet-top, .leaflet-bottom { position: absolute; z-index: 1000; pointer-events: none; }
+    .leaflet-top { top: 0; }
+    .leaflet-right { right: 0; }
+    .leaflet-bottom { bottom: 0; }
+    .leaflet-left { left: 0; }
+    .leaflet-control { float: left; clear: both; }
+    .leaflet-right .leaflet-control { float: right; }
+    .leaflet-top .leaflet-control { margin-top: 10px; }
+    .leaflet-bottom .leaflet-control { margin-bottom: 10px; }
+    .leaflet-left .leaflet-control { margin-left: 10px; }
+    .leaflet-right .leaflet-control { margin-right: 10px; }
+    .leaflet-control-zoom { border: 2px solid rgb(0 0 0 / 20%); border-radius: 6px; overflow: hidden; }
+    .leaflet-control-zoom a { display: block; width: 30px; height: 30px; background: #fff; color: #172233; text-align: center; text-decoration: none; line-height: 30px; }
+    .leaflet-control-zoom a + a { border-top: 1px solid #ccc; }
+    .leaflet-control-attribution { padding: 2px 6px; background: rgb(255 255 255 / 80%); color: #334155; font-size: 10px; }
+    .leaflet-control-attribution a { color: #2575a8; }
+    .leaflet-popup { position: absolute; margin-bottom: 20px; text-align: center; }
+    .leaflet-popup-content-wrapper { padding: 1px; background: #fff; color: #172233; border-radius: 9px; box-shadow: 0 3px 14px rgb(0 0 0 / 25%); }
+    .leaflet-popup-content { margin: 10px 13px; line-height: 1.35; }
+    .leaflet-popup-tip-container { position: absolute; left: 50%; width: 40px; height: 20px; margin-left: -20px; overflow: hidden; pointer-events: none; }
+    .leaflet-popup-tip { width: 17px; height: 17px; margin: -10px auto 0; padding: 1px; background: #fff; transform: rotate(45deg); box-shadow: 3px 3px 14px rgb(0 0 0 / 18%); }
+    .leaflet-popup-close-button { position: absolute; top: 0; right: 0; padding: 5px 7px 0 0; border: 0; background: transparent; color: #64748b; font-size: 18px; text-decoration: none; }
+    .leaflet-tooltip { position: absolute; padding: 6px; border: 1px solid #fff; border-radius: 4px; background: #fff; color: #172233; box-shadow: 0 1px 3px rgb(0 0 0 / 30%); white-space: nowrap; pointer-events: none; }
+
+    :root {
+      --ink: #172233;
+      --muted: #64748b;
+      --paper: #f6f3eb;
+      --card: #fffdf8;
+      --line: #d9d3c4;
+      --navy: #17324d;
+      --navy-2: #244966;
+      --gold: #f2b84b;
+      --green: #14805e;
+      --red: #bb3e3e;
+      --blue: #2575a8;
+      --purple: #8055a6;
+      --orange: #d36b2c;
+      --teal: #238a83;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { height: 100%; }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button { font: inherit; }
+
+    .app {
+      min-height: 100%;
+      display: grid;
+      grid-template-columns: 278px minmax(0, 1fr);
+    }
+
+    .sidebar {
+      background: var(--navy);
+      color: #fff;
+      padding: 24px 18px;
+      overflow-y: auto;
+      box-shadow: 4px 0 18px rgb(23 50 77 / 18%);
+      z-index: 1001;
+    }
+
+    .brand { margin: 0 0 4px; font-size: 1.25rem; }
+    .brand-sub { margin: 0 0 22px; color: #c9d7e4; font-size: .84rem; line-height: 1.4; }
+    .nav-heading { margin: 22px 8px 8px; color: #aec4d6; font-size: .72rem; letter-spacing: .11em; text-transform: uppercase; }
+
+    .mode-btn {
+      width: 100%;
+      margin: 3px 0;
+      padding: 10px 12px;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      color: #edf6fb;
+      background: transparent;
+      cursor: pointer;
+      text-align: left;
+      transition: background .15s ease, border-color .15s ease, transform .15s ease;
+    }
+
+    .mode-btn:hover { background: var(--navy-2); transform: translateX(2px); }
+    .mode-btn.active { background: #fff; border-color: #fff; color: var(--navy); font-weight: 700; }
+    .mode-btn .count { float: right; opacity: .72; font-size: .78rem; }
+
+    .main {
+      min-width: 0;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .eyebrow { color: var(--muted); font-size: .76rem; letter-spacing: .1em; text-transform: uppercase; }
+    h1 { margin: 3px 0 0; font-size: clamp(1.25rem, 2.3vw, 2rem); line-height: 1.2; }
+
+    .stats { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+    .stat { min-width: 78px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); text-align: center; }
+    .stat strong { display: block; font-size: 1.15rem; }
+    .stat span { color: var(--muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .07em; }
+
+    .quiz-card {
+      padding: 16px 18px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--card);
+      box-shadow: 0 8px 24px rgb(23 34 51 / 7%);
+    }
+
+    .prompt-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .type-tag { display: inline-flex; align-items: center; min-height: 28px; padding: 4px 9px; border-radius: 999px; background: #e8eef3; color: #3c5267; font-size: .76rem; font-weight: 700; }
+    .prompt { margin: 0; font-size: clamp(1.2rem, 2.4vw, 1.75rem); }
+    .prompt strong { color: var(--blue); }
+    .instruction { margin: 7px 0 0; color: var(--muted); font-size: .9rem; }
+
+    .feedback-row { min-height: 42px; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
+    .feedback { margin: 0; font-weight: 700; }
+    .feedback.correct { color: var(--green); }
+    .feedback.wrong { color: var(--red); }
+    .actions { display: flex; gap: 8px; }
+
+    .action-btn {
+      padding: 9px 13px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .action-btn:hover { border-color: var(--blue); }
+    .action-btn.primary { background: var(--navy); border-color: var(--navy); color: #fff; }
+
+    .progress-wrap { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 10px; margin-top: 8px; }
+    .progress-track { height: 7px; overflow: hidden; border-radius: 99px; background: #e4e0d7; }
+    .progress-bar { height: 100%; width: 0; border-radius: inherit; background: var(--gold); transition: width .25s ease; }
+    .progress-text { color: var(--muted); font-size: .78rem; white-space: nowrap; }
+
+    #map {
+      flex: 1 1 520px;
+      min-height: 440px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+      background: #dce7ea;
+      box-shadow: 0 8px 24px rgb(23 34 51 / 8%);
+    }
+
+    .legend { display: flex; flex-wrap: wrap; gap: 8px 14px; color: var(--muted); font-size: .76rem; }
+    .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--dot); }
+
+    .basics-panel {
+      display: none;
+      flex: 1 1 520px;
+      min-height: 440px;
+      padding: clamp(22px, 5vw, 54px);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--card);
+      box-shadow: 0 8px 24px rgb(23 34 51 / 8%);
+    }
+
+    .basics-panel.open { display: block; }
+    .basics-panel h2 { margin-top: 0; }
+    .check-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; margin-top: 20px; }
+    .check-item { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+    .check-item input { width: 19px; height: 19px; accent-color: var(--green); }
+
+    .leaflet-container { font: inherit; }
+    .quiz-marker { border: 2px solid #fff; box-shadow: 0 1px 5px rgb(0 0 0 / 40%); }
+    .quiz-marker.answer { animation: pulse 1s ease-in-out infinite alternate; }
+    .leaflet-popup-content-wrapper { border-radius: 9px; }
+    .leaflet-popup-content { margin: 10px 13px; font-weight: 700; }
+
+    @keyframes pulse { from { stroke-width: 3; fill-opacity: .8; } to { stroke-width: 8; fill-opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
+
+    @media (max-width: 850px) {
+      .app { grid-template-columns: 1fr; }
+      .sidebar { max-height: 330px; padding: 14px; overflow-y: auto; }
+      .brand-sub { margin-bottom: 10px; }
+      .nav-heading { margin-top: 12px; }
+      .nav-group { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 4px; }
+      .mode-btn { margin: 0; }
+      .main { padding: 14px; }
+      .topbar { align-items: center; }
+      #map, .basics-panel { min-height: 52vh; }
+    }
+
+    @media (max-width: 560px) {
+      .topbar { display: block; }
+      .stats { justify-content: flex-start; margin-top: 12px; }
+      .stat { min-width: 70px; }
+      .feedback-row { align-items: flex-start; flex-direction: column; }
+      .actions { width: 100%; }
+      .action-btn { flex: 1; }
+      #map, .basics-panel { min-height: 420px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar" aria-label="Game modes">
+      <h2 class="brand">AP Human Geography</h2>
+      <p class="brand-sub">World Regions &amp; Places to Know</p>
+
+      <p class="nav-heading">Game mode</p>
+      <div class="nav-group">
+        <button class="mode-btn active" data-mode="all">🌍 All Countries/Cities + Places <span class="count" id="all-count"></span></button>
+        <button class="mode-btn" data-mode="ap-regions">🧭 Guess the Continent / Region <span class="count">22</span></button>
+      </div>
+
+      <p class="nav-heading">Play by region</p>
+      <div class="nav-group" id="region-buttons"></div>
+
+      <p class="nav-heading">Reference</p>
+      <div class="nav-group">
+        <button class="mode-btn" data-mode="basics">✓ Map Basics <span class="count">10</span></button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div>
+          <div class="eyebrow" id="mode-label">All Places</div>
+          <h1>Map Challenge</h1>
+        </div>
+        <div class="stats" aria-label="Score">
+          <div class="stat"><strong id="score">0</strong><span>Score</span></div>
+          <div class="stat"><strong id="streak">0</strong><span>Streak</span></div>
+          <div class="stat"><strong id="accuracy">—</strong><span>Accuracy</span></div>
+        </div>
+      </div>
+
+      <section class="quiz-card" id="quiz-card" aria-labelledby="prompt">
+        <div class="prompt-row">
+          <span class="type-tag" id="type-tag">Country</span>
+          <p class="prompt" id="prompt">Find <strong id="target-name"></strong></p>
+        </div>
+        <p class="instruction" id="instruction">Click the matching marker on the map. Markers have no labels until you answer.</p>
+        <div class="feedback-row">
+          <p class="feedback" id="feedback" aria-live="polite"></p>
+          <div class="actions">
+            <button class="action-btn" id="show-answer">Show answer</button>
+            <button class="action-btn primary" id="next-question">New question</button>
+          </div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-track" role="progressbar" aria-label="Round progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="progress-bar" id="progress-bar"></div></div>
+          <span class="progress-text" id="progress-text">0 / 0 found</span>
+        </div>
+      </section>
+
+      <div id="map" aria-label="Interactive world map"></div>
+
+      <section class="basics-panel" id="basics-panel">
+        <div class="eyebrow">Places to Know reference</div>
+        <h2>Map Basics — include on all maps</h2>
+        <p class="instruction">Use this checklist while practicing a hand-drawn map. These are kept as reference items because several are lines or complete sets, not single map points.</p>
+        <div class="check-grid" id="basics-list"></div>
+      </section>
+
+      <div class="legend" id="legend" aria-label="Marker legend"></div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script>
+    const COLORS = {
+      Country: '#bb3e3e', City: '#2575a8', River: '#238a83', Lake: '#4f87c5',
+      'Body of Water': '#3b8dbd', Mountain: '#8055a6', Desert: '#d36b2c',
+      Chokepoint: '#14805e', Region: '#f2b84b'
+    };
+
+    const PLACES = [
+      // North America
+      ['Canada', 56.13, -106.35, 'Country', ['North America']],
+      ['United States', 38.2, -99.4, 'Country', ['North America']],
+      ['New York City', 40.713, -74.006, 'City', ['North America']],
+      ['Los Angeles', 34.052, -118.244, 'City', ['North America']],
+      ['Chicago', 41.878, -87.63, 'City', ['North America']],
+      ['Washington, DC', 38.907, -77.037, 'City', ['North America']],
+      ['Ottawa', 45.422, -75.697, 'City', ['North America']],
+      ['Toronto', 43.653, -79.383, 'City', ['North America']],
+      ['Mississippi', 32.3, -90.9, 'River', ['North America']],
+      ['5 Great Lakes', 45.2, -84.3, 'Lake', ['North America']],
+      ['Great Salt Lake', 41.15, -112.55, 'Lake', ['North America']],
+      ['Caribbean Sea', 15.3, -75.2, 'Body of Water', ['North America', 'Central America']],
+      ['Gulf of Mexico', 24.5, -90.2, 'Body of Water', ['North America', 'Central America']],
+      ['Hudson Bay', 59.7, -85.0, 'Body of Water', ['North America']],
+      ['Rocky Mountains', 43.5, -110.5, 'Mountain', ['North America']],
+      ['Appalachian Mountains', 37.5, -81.2, 'Mountain', ['North America']],
+      ['North American Desert', 33.8, -114.2, 'Desert', ['North America', 'Central America']],
+
+      // Central America
+      ['Mexico', 23.63, -102.55, 'Country', ['Central America']],
+      ['Cuba', 21.52, -77.78, 'Country', ['Central America']],
+      ['Panama', 8.54, -80.78, 'Country', ['Central America']],
+      ['Mexico City', 19.433, -99.133, 'City', ['Central America']],
+      ['Panama Canal', 9.08, -79.68, 'Chokepoint', ['Central America', 'South America']],
+
+      // South America
+      ['Brazil', -14.24, -51.93, 'Country', ['South America']],
+      ['Peru', -9.19, -75.02, 'Country', ['South America']],
+      ['Venezuela', 6.42, -66.59, 'Country', ['South America']],
+      ['Chile', -35.68, -71.54, 'Country', ['South America']],
+      ['Rio de Janeiro', -22.907, -43.173, 'City', ['South America']],
+      ['Sao Paolo', -23.551, -46.633, 'City', ['South America']],
+      ['Brasilia', -15.827, -47.922, 'City', ['South America']],
+      ['Amazon', -3.1, -60.0, 'River', ['South America']],
+      ['Andes', -18.5, -69.5, 'Mountain', ['South America']],
+      ['Atacama', -24.5, -69.25, 'Desert', ['South America']],
+
+      // Europe
+      ['United Kingdom', 55.38, -3.44, 'Country', ['Europe']],
+      ['Germany', 51.17, 10.45, 'Country', ['Europe']],
+      ['Spain', 40.46, -3.75, 'Country', ['Europe']],
+      ['Italy', 42.87, 12.57, 'Country', ['Europe']],
+      ['Poland', 51.92, 19.15, 'Country', ['Europe']],
+      ['Sweden', 60.13, 18.64, 'Country', ['Europe']],
+      ['Switzerland', 46.82, 8.23, 'Country', ['Europe']],
+      ['France', 46.60, 1.89, 'Country', ['Europe']],
+      ['London', 51.507, -0.128, 'City', ['Europe']],
+      ['Paris', 48.857, 2.352, 'City', ['Europe']],
+      ['Rome', 41.903, 12.496, 'City', ['Europe']],
+      ['Berlin', 52.52, 13.405, 'City', ['Europe']],
+      ['Rhine-Ruhr', 51.3, 7.1, 'River', ['Europe']],
+      ['Thames', 51.49, -0.61, 'River', ['Europe']],
+      ['Seine', 48.75, 2.1, 'River', ['Europe']],
+      ['Mediterranean Sea', 35.2, 18.0, 'Body of Water', ['Europe']],
+      ['English Channel', 50.25, -1.2, 'Body of Water', ['Europe']],
+      ['Dardanelles', 40.2, 26.4, 'Chokepoint', ['Europe']],
+      ['Bosporus', 41.12, 29.05, 'Chokepoint', ['Europe']],
+      ['Strait of Gibraltar', 35.96, -5.6, 'Chokepoint', ['Europe', 'North Africa']],
+      ['Alps', 46.5, 10.0, 'Mountain', ['Europe']],
+
+      // Oceania
+      ['Australia', -25.27, 133.78, 'Country', ['Oceania']],
+      ['New Zealand', -40.9, 174.89, 'Country', ['Oceania']],
+      ['Nauru', -0.523, 166.93, 'Country', ['Oceania']],
+      ['Sydney', -33.869, 151.209, 'City', ['Oceania']],
+      ['Melbourne', -37.814, 144.963, 'City', ['Oceania']],
+      ['Great Dividing Range', -27.5, 151.5, 'Mountain', ['Oceania']],
+      ['Great Victoria', -29.0, 129.0, 'Desert', ['Oceania']],
+      ['Gibson', -23.0, 125.0, 'Desert', ['Oceania']],
+
+      // Russian Domain
+      ['Russia', 61.52, 105.32, 'Country', ['Russian Domain']],
+      ['Ukraine', 48.38, 31.17, 'Country', ['Russian Domain']],
+      ['Kazakhstan', 48.02, 66.92, 'Country', ['Russian Domain']],
+      ['Azerbaijan', 40.14, 47.58, 'Country', ['Russian Domain']],
+      ['Moscow', 55.756, 37.617, 'City', ['Russian Domain']],
+      ['St. Petersburg', 59.934, 30.335, 'City', ['Russian Domain']],
+      ['Kaliningrad', 54.71, 20.452, 'City', ['Russian Domain']],
+      ['Vladivostok', 43.116, 131.886, 'City', ['Russian Domain']],
+      ['Volga', 48.7, 44.5, 'River', ['Russian Domain']],
+      ['Caspian Sea', 41.7, 50.6, 'Lake', ['Russian Domain']],
+      ['Baikal', 53.5, 108.0, 'Lake', ['Russian Domain']],
+      ['Aral Sea', 45.0, 59.0, 'Lake', ['Russian Domain']],
+      ['Urals', 58.0, 60.0, 'Mountain', ['Russian Domain']],
+      ['Caucasus', 42.5, 44.5, 'Mountain', ['Russian Domain']],
+      ['Siberian', 65.0, 105.0, 'Desert', ['Russian Domain']],
+
+      // South/Southwest Asia
+      ['Turkey', 38.96, 35.24, 'Country', ['South/Southwest Asia']],
+      ['Syria', 34.80, 38.997, 'Country', ['South/Southwest Asia']],
+      ['Iraq', 33.22, 43.68, 'Country', ['South/Southwest Asia']],
+      ['Iran', 32.43, 53.69, 'Country', ['South/Southwest Asia']],
+      ['Saudi Arabia', 23.89, 45.08, 'Country', ['South/Southwest Asia']],
+      ['Israel', 31.05, 34.85, 'Country', ['South/Southwest Asia']],
+      ['Lebanon', 33.85, 35.86, 'Country', ['South/Southwest Asia']],
+      ['Pakistan', 30.38, 69.35, 'Country', ['South/Southwest Asia']],
+      ['Afghanistan', 33.94, 67.71, 'Country', ['South/Southwest Asia']],
+      ['India', 20.59, 78.96, 'Country', ['South/Southwest Asia']],
+      ['Bangladesh', 23.69, 90.36, 'Country', ['South/Southwest Asia']],
+      ['Jerusalem', 31.768, 35.214, 'City', ['South/Southwest Asia']],
+      ['Beirut', 33.894, 35.502, 'City', ['South/Southwest Asia']],
+      ['Mecca', 21.389, 39.858, 'City', ['South/Southwest Asia']],
+      ['Istanbul', 41.008, 28.978, 'City', ['South/Southwest Asia']],
+      ['Tehran', 35.689, 51.389, 'City', ['South/Southwest Asia']],
+      ['Kabul', 34.555, 69.208, 'City', ['South/Southwest Asia']],
+      ['Calcutta', 22.573, 88.364, 'City', ['South/Southwest Asia']],
+      ['Mumbai', 19.076, 72.878, 'City', ['South/Southwest Asia']],
+      ['Bangalore', 12.972, 77.595, 'City', ['South/Southwest Asia']],
+      ['Tigris & Euphrates', 33.0, 44.4, 'River', ['South/Southwest Asia']],
+      ['Indus', 27.0, 68.0, 'River', ['South/Southwest Asia']],
+      ['Ganges', 25.3, 84.7, 'River', ['South/Southwest Asia']],
+      ['Red Sea', 20.0, 38.5, 'Body of Water', ['South/Southwest Asia', 'North Africa']],
+      ['Persian Gulf/Arabian Gulf', 26.5, 52.0, 'Body of Water', ['South/Southwest Asia']],
+      ['Strait of Hormuz', 26.57, 56.25, 'Chokepoint', ['South/Southwest Asia']],
+      ['Bosporus Strait', 41.12, 29.08, 'Chokepoint', ['South/Southwest Asia']],
+      ['Rub al Khali', 20.0, 50.0, 'Desert', ['South/Southwest Asia']],
+
+      // East/Southeast Asia
+      ['China', 35.86, 104.20, 'Country', ['East/Southeast Asia']],
+      ['Japan', 36.20, 138.25, 'Country', ['East/Southeast Asia']],
+      ['South Korea', 35.91, 127.77, 'Country', ['East/Southeast Asia']],
+      ['North Korea', 40.34, 127.51, 'Country', ['East/Southeast Asia']],
+      ['Vietnam', 14.06, 108.28, 'Country', ['East/Southeast Asia']],
+      ['Indonesia', -0.79, 113.92, 'Country', ['East/Southeast Asia']],
+      ['Cambodia', 12.57, 104.99, 'Country', ['East/Southeast Asia']],
+      ['Philippines', 12.88, 121.77, 'Country', ['East/Southeast Asia']],
+      ['Myanmar', 21.92, 95.96, 'Country', ['East/Southeast Asia']],
+      ['Taiwan', 23.70, 120.96, 'Country', ['East/Southeast Asia']],
+      ['Hong Kong', 22.319, 114.169, 'City', ['East/Southeast Asia']],
+      ['Beijing', 39.904, 116.407, 'City', ['East/Southeast Asia']],
+      ['Tokyo', 35.676, 139.65, 'City', ['East/Southeast Asia']],
+      ['Seoul', 37.567, 126.978, 'City', ['East/Southeast Asia']],
+      ['Shanghai', 31.23, 121.474, 'City', ['East/Southeast Asia']],
+      ['Jakarta', -6.209, 106.846, 'City', ['East/Southeast Asia']],
+      ['Yangtze', 30.75, 112.5, 'River', ['East/Southeast Asia']],
+      ['Mekong', 15.0, 105.0, 'River', ['East/Southeast Asia']],
+      ['South China Sea', 12.0, 114.0, 'Body of Water', ['East/Southeast Asia']],
+      ['Sea of Japan/East Sea', 40.0, 135.0, 'Body of Water', ['East/Southeast Asia']],
+      ['Himalayas', 28.0, 86.0, 'Mountain', ['East/Southeast Asia']],
+      ['Tibetan Plateau', 32.0, 88.0, 'Mountain', ['East/Southeast Asia']],
+      ['Gobi', 42.5, 104.0, 'Desert', ['East/Southeast Asia']],
+
+      // North Africa
+      ['Egypt', 26.82, 30.80, 'Country', ['North Africa']],
+      ['Ethiopia', 9.15, 40.49, 'Country', ['North Africa']],
+      ['Sudan', 12.86, 30.22, 'Country', ['North Africa']],
+      ['South Sudan', 6.88, 31.31, 'Country', ['North Africa']],
+      ['Libya', 26.34, 17.23, 'Country', ['North Africa']],
+      ['Somalia', 5.15, 46.20, 'Country', ['North Africa']],
+      ['Cairo', 30.044, 31.236, 'City', ['North Africa']],
+      ['Tripoli', 32.887, 13.191, 'City', ['North Africa']],
+      ['Nile', 21.0, 31.0, 'River', ['North Africa']],
+      ['Suez Canal', 30.45, 32.35, 'Chokepoint', ['North Africa']],
+      ['Atlas', 31.0, -6.0, 'Mountain', ['North Africa']],
+      ['Sahara', 23.0, 12.0, 'Desert', ['North Africa']],
+
+      // Sub-Saharan Africa
+      ['South Africa', -30.56, 22.94, 'Country', ['Sub-Saharan Africa']],
+      ['Democratic Republic of the Congo', -4.04, 21.76, 'Country', ['Sub-Saharan Africa']],
+      ['Nigeria', 9.08, 8.68, 'Country', ['Sub-Saharan Africa']],
+      ['Kenya', -0.02, 37.91, 'Country', ['Sub-Saharan Africa']],
+      ['Mozambique', -18.67, 35.53, 'Country', ['Sub-Saharan Africa']],
+      ['Uganda', 1.37, 32.29, 'Country', ['Sub-Saharan Africa']],
+      ['Cape Town', -33.925, 18.424, 'City', ['Sub-Saharan Africa']],
+      ['Lagos', 6.524, 3.379, 'City', ['Sub-Saharan Africa']],
+      ['Congo', -2.0, 16.0, 'River', ['Sub-Saharan Africa']],
+      ['Victoria', -1.0, 33.0, 'Lake', ['Sub-Saharan Africa']],
+      ['Great Rift Valley', -3.0, 36.0, 'Mountain', ['Sub-Saharan Africa']],
+      ['Namib', -24.0, 15.0, 'Desert', ['Sub-Saharan Africa']],
+
+      // Antarctica
+      ['Antarctic Polar', -82.0, 20.0, 'Desert', ['Antarctica']]
+    ].map(([name, lat, lng, type, regions]) => ({ name, lat, lng, type, regions }));
+
+    const AP_REGIONS = [
+      ['Canada', 57, -108], ['United States', 38, -99], ['Caribbean', 18, -72],
+      ['Latin America', -13, -71], ['Brazil', -11, -52], ['Western Europe', 51, 3],
+      ['Eastern Europe', 51, 25], ['North Africa', 29, 12], ['West Africa', 10, -6],
+      ['Central Africa', 0, 20], ['Southern Africa', -25, 24], ['East Africa', 3, 38],
+      ['Middle East', 30, 45], ['Central Asia', 43, 66], ['South Asia', 22, 78],
+      ['Siberia', 61, 101], ['East Asia', 34, 116], ['Southeast Asia', 8, 108],
+      ['Australia', -25, 134], ['Melanesia', -9, 159], ['Micronesia', 7, 153],
+      ['Polynesia', -17, -150]
+    ].map(([name, lat, lng]) => ({ name, lat, lng, type: 'Region', regions: ['AP World Regions'] }));
+
+    const REGION_ORDER = [
+      'North America', 'Central America', 'South America', 'Europe', 'Oceania',
+      'Russian Domain', 'South/Southwest Asia', 'East/Southeast Asia',
+      'North Africa', 'Sub-Saharan Africa', 'Antarctica'
+    ];
+
+    const REGION_VIEW = {
+      'North America': [[43, -98], 3], 'Central America': [[17, -88], 4],
+      'South America': [[-15, -60], 3], Europe: [[51, 11], 4],
+      Oceania: [[-23, 144], 3], 'Russian Domain': [[55, 75], 3],
+      'South/Southwest Asia': [[28, 62], 3], 'East/Southeast Asia': [[23, 117], 3],
+      'North Africa': [[20, 24], 3], 'Sub-Saharan Africa': [[-8, 24], 3],
+      Antarctica: [[-78, 20], 2]
+    };
+
+    const BASICS = [
+      '5 Oceans', '7 Continents', 'Arctic Circle', 'Tropic of Cancer', 'Equator',
+      'Tropic of Capricorn', 'Antarctic Circle', 'Prime Meridian',
+      'International Date Line', 'Map Key/Legend'
+    ];
+
+    const state = {
+      mode: 'all', region: null, active: [], deck: [], target: null, markers: [],
+      score: 0, streak: 0, attempts: 0, correct: 0, found: new Set(), locked: false,
+      nextTimer: null
+    };
+
+    const map = L.map('map', {
+      minZoom: 2, maxZoom: 7, worldCopyJump: true, zoomControl: true,
+      maxBounds: [[-90, -220], [90, 220]], maxBoundsViscosity: .75
+    }).setView([18, 0], 2);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap contributors &copy; CARTO', subdomains: 'abcd', maxZoom: 20
+    }).addTo(map);
+
+    const el = id => document.getElementById(id);
+    const shuffle = items => {
+      const copy = [...items];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    };
+
+    function markerRadius(type) {
+      if (type === 'Region') return 10;
+      if (type === 'Country') return 7;
+      return 6;
+    }
+
+    function renderMarkers() {
+      state.markers.forEach(marker => marker.remove());
+      state.markers = state.active.map(place => {
+        const marker = L.circleMarker([place.lat, place.lng], {
+          radius: markerRadius(place.type), color: '#fff', weight: 2,
+          fillColor: COLORS[place.type], fillOpacity: .92, className: 'quiz-marker'
+        }).addTo(map);
+        const path = marker.getElement();
+        if (path) {
+          path.setAttribute('aria-label', 'Unlabeled map choice');
+          path.setAttribute('role', 'button');
+          path.setAttribute('tabindex', '0');
+          path.dataset.place = place.name;
+        }
+        marker.on('click', () => checkAnswer(place, marker));
+        marker.on('keypress', event => {
+          if (event.originalEvent.key === 'Enter' || event.originalEvent.key === ' ') checkAnswer(place, marker);
+        });
+        marker.bindTooltip('Choose this marker', { direction: 'top', opacity: .9 });
+        marker._place = place;
+        return marker;
+      });
+    }
+
+    function refillDeck() {
+      state.deck = shuffle(state.active.filter(item => !state.found.has(item.name)));
+      if (!state.deck.length) {
+        state.found.clear();
+        state.deck = shuffle(state.active);
+      }
+    }
+
+    function newQuestion() {
+      if (!state.active.length) return;
+      window.clearTimeout(state.nextTimer);
+      state.locked = false;
+      clearAnswerStyles();
+      if (!state.deck.length) refillDeck();
+      state.target = state.deck.pop();
+      el('target-name').textContent = state.target.name;
+      el('type-tag').textContent = state.target.type;
+      el('feedback').textContent = '';
+      el('feedback').className = 'feedback';
+    }
+
+    function checkAnswer(place, marker) {
+      if (state.locked || !state.target) return;
+      state.attempts += 1;
+      if (place.name === state.target.name) {
+        state.locked = true;
+        state.correct += 1;
+        state.score += 100 + Math.min(state.streak, 5) * 20;
+        state.streak += 1;
+        state.found.add(state.target.name);
+        marker.setStyle({ color: '#14805e', weight: 7 });
+        marker.unbindTooltip().bindPopup('✓ ' + place.name).openPopup();
+        setFeedback('Correct! Nice work.', 'correct');
+        updateStats();
+        state.nextTimer = window.setTimeout(newQuestion, 950);
+      } else {
+        state.streak = 0;
+        marker.bindPopup('That is ' + place.name).openPopup();
+        setFeedback('Not quite — that marker is ' + place.name + '. Try again.', 'wrong');
+        updateStats();
+      }
+    }
+
+    function showAnswer() {
+      if (!state.target) return;
+      state.locked = true;
+      state.streak = 0;
+      const marker = state.markers.find(item => item._place.name === state.target.name);
+      if (marker) {
+        marker.setStyle({ className: 'quiz-marker answer', color: '#f2b84b', weight: 8, fillOpacity: 1 });
+        marker.unbindTooltip().bindPopup('Answer: ' + state.target.name).openPopup();
+        map.panTo(marker.getLatLng());
+      }
+      setFeedback('Answer shown. Select “New question” when ready.', 'correct');
+      updateStats();
+    }
+
+    function clearAnswerStyles() {
+      state.markers.forEach(marker => {
+        const place = marker._place;
+        marker.closePopup();
+        marker.setStyle({ color: '#fff', weight: 2, fillColor: COLORS[place.type], fillOpacity: .92, className: 'quiz-marker' });
+        marker.unbindTooltip().bindTooltip('Choose this marker', { direction: 'top', opacity: .9 });
+      });
+    }
+
+    function setFeedback(message, kind) {
+      el('feedback').textContent = message;
+      el('feedback').className = 'feedback ' + kind;
+    }
+
+    function updateStats() {
+      el('score').textContent = state.score;
+      el('streak').textContent = state.streak;
+      el('accuracy').textContent = state.attempts ? Math.round(state.correct / state.attempts * 100) + '%' : '—';
+      const total = state.active.length;
+      const found = Math.min(state.found.size, total);
+      const pct = total ? found / total * 100 : 0;
+      el('progress-bar').style.width = pct + '%';
+      el('progress-text').textContent = found + ' / ' + total + ' found';
+      document.querySelector('.progress-track').setAttribute('aria-valuenow', Math.round(pct));
+    }
+
+    function updateLegend() {
+      const types = [...new Set(state.active.map(item => item.type))];
+      el('legend').innerHTML = types.map(type =>
+        '<span class="legend-item"><span class="dot" style="--dot:' + COLORS[type] + '"></span>' + type + '</span>'
+      ).join('');
+    }
+
+    function setMode(mode, region = null) {
+      window.clearTimeout(state.nextTimer);
+      state.mode = mode;
+      state.region = region;
+      state.found.clear();
+      state.deck = [];
+      state.target = null;
+      state.locked = false;
+
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        const active = btn.dataset.mode === mode && (mode !== 'region' || btn.dataset.region === region);
+        btn.classList.toggle('active', active);
+      });
+
+      const basics = mode === 'basics';
+      el('map').style.display = basics ? 'none' : 'block';
+      el('quiz-card').style.display = basics ? 'none' : 'block';
+      el('basics-panel').classList.toggle('open', basics);
+      el('legend').style.display = basics ? 'none' : 'flex';
+
+      if (basics) {
+        el('mode-label').textContent = 'Reference Checklist';
+        window.setTimeout(() => map.invalidateSize(), 0);
+        return;
+      }
+
+      if (mode === 'ap-regions') {
+        state.active = AP_REGIONS;
+        el('mode-label').textContent = 'Guess the Continent / AP World Region';
+        el('instruction').textContent = 'Choose the marker that matches the AP World Region shown above.';
+        map.setView([18, 0], 2);
+      } else if (mode === 'region') {
+        state.active = PLACES.filter(place => place.regions.includes(region));
+        el('mode-label').textContent = 'Play by Region · ' + region;
+        el('instruction').textContent = 'Find countries, cities, and physical features from the Places to Know sheet.';
+        const [center, zoom] = REGION_VIEW[region];
+        map.setView(center, zoom);
+      } else {
+        state.active = PLACES;
+        el('mode-label').textContent = 'All Countries/Cities + Places';
+        el('instruction').textContent = 'Find every country, city, and physical feature from the supplied materials.';
+        map.setView([18, 0], 2);
+      }
+
+      renderMarkers();
+      updateLegend();
+      updateStats();
+      newQuestion();
+      window.setTimeout(() => map.invalidateSize(), 0);
+    }
+
+    function buildNavigation() {
+      el('all-count').textContent = PLACES.length;
+      el('region-buttons').innerHTML = REGION_ORDER.map(region => {
+        const count = PLACES.filter(place => place.regions.includes(region)).length;
+        return '<button class="mode-btn" data-mode="region" data-region="' + region + '">' + region + '<span class="count">' + count + '</span></button>';
+      }).join('');
+
+      document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.addEventListener('click', () => setMode(btn.dataset.mode, btn.dataset.region || null));
+      });
+    }
+
+    function buildBasics() {
+      el('basics-list').innerHTML = BASICS.map((item, index) =>
+        '<label class="check-item" for="basic-' + index + '"><input id="basic-' + index + '" type="checkbox"><span>' + item + '</span></label>'
+      ).join('');
+    }
+
+    el('show-answer').addEventListener('click', showAnswer);
+    el('next-question').addEventListener('click', newQuestion);
+    buildNavigation();
+    buildBasics();
+    setMode('all');
+  </script>
+</body>
+</html>
